@@ -74,3 +74,13 @@ module "sg" {
 
   }
 }
+
+module "bastion" {
+  source = "./modules/ec2"
+
+  ami_id = local.bastion_ami_id
+  instance_type = local.bastion_instance_type
+  subnet_id = module.vpc.public_subnet_ids[0]
+  security_group_ids = [module.sg.security_group_ids["bastion_sg"]]
+  key_name = local.bastion_key_name
+}
