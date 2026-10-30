@@ -13,7 +13,7 @@ resource "aws_route_table_association" "public_subnets" {
 
 }
 
-resource "aws_route_table" "private_servers_routing_table" {
+resource "aws_route_table" "private_servers_route_table" {
     vpc_id = aws_vpc.main_vpc.id
     route {
         cidr_block = "0.0.0.0/0"
