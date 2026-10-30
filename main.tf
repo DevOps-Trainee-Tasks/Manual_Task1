@@ -12,6 +12,7 @@ provider "aws" {
 
 module "vpc" {
   source = "./modules/vpc"
+  nat_gateway_public_subnet_index = 0
 
 cidr = "10.0.0.0/24"
 

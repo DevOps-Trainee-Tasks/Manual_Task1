@@ -17,3 +17,7 @@ variable "private_db_subnets" {
 variable "private_servers_subnets" {
   type = list(string)
 }
+
+variable "nat_gateway_public_subnet_index" {
+  type = number
+}
