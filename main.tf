@@ -130,3 +130,16 @@ module "asg" {
   user_data = filebase64("${path.root}/scripts/install_ollama.sh")
   target_group_arn = module.alb.target_group_arn
 }
+
+module "rds" {
+    source = "./modules/rds"
+
+    name_prefix = local.project
+    private_db_subnet_ids = module.vpc.private_db_subnet_ids
+    rds_security_group_id = module.sg.security_group_ids["rds_sg"]
+    instance_class = local.rds_instance_class
+    db_name = local.rds_db_name
+    db_username = local.rds_db_username
+    engine_version = local.rds_engine_version
+    allocated_storage = local.rds_allocated_storage
+}

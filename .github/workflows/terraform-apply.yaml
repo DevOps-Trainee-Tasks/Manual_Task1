@@ -1,0 +1,82 @@
+name: Terraform Apply
+
+on:
+  pull_request_review:
+    types: [submitted]
+
+permissions:
+  contents: read
+  pull-requests: read
+  id-token: write
+
+concurrency:
+  group: terraform-apply
+  cancel-in-progress: false
+
+jobs:
+  apply:
+    if: |
+      github.event.review.state == 'approved' &&
+      github.event.review.user.login == vars.TERRAFORM_APPROVER &&
+      github.event.pull_request.base.ref == 'main' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.review.commit_id == github.event.pull_request.head.sha
+
+    runs-on: ubuntu-latest
+
+    env:
+      TF_IN_AUTOMATION: "true"
+      TF_INPUT: "false"
+      GH_TOKEN: ${{ github.token }}
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+      PR_SHA: ${{ github.event.pull_request.head.sha }}
+      REVIEW_ID: ${{ github.event.review.id }}
+      PLAN_BUCKET: task1-tfstate-687078156188
+      PLAN_KEY: task1/plans/pr-${{ github.event.pull_request.number }}/${{ github.event.pull_request.head.sha }}/tfplan
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.13.5"
+
+      - name: AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v6.3.0
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+          allowed-account-ids: ${{ vars.ALLOWED_ACCOUNT_IDS }}
+
+      - name: Terraform Apply
+        run: |
+          PR=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER")
+          test "$(echo "$PR" | jq -r '.state')" = "open"
+          test "$(echo "$PR" | jq -r '.head.sha')" = "$PR_SHA"
+
+          REVIEW=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER/reviews/$REVIEW_ID")
+          test "$(echo "$REVIEW" | jq -r '.state')" = "APPROVED"
+
+          terraform init
+
+          if aws s3api head-object --bucket "$PLAN_BUCKET" --key "$PLAN_KEY.applied" >/dev/null 2>&1; then
+            echo "Plan already applied"
+            exit 1
+          fi
+
+          aws s3 cp "s3://$PLAN_BUCKET/$PLAN_KEY" tfplan
+
+          test "$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER" --jq '.head.sha')" = "$PR_SHA"
+
+          terraform apply -input=false tfplan
+
+          aws s3api put-object \
+            --bucket "$PLAN_BUCKET" \
+            --key "$PLAN_KEY.applied" \
+            --body /dev/null \
+            --server-side-encryption AES256
