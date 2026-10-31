@@ -39,7 +39,6 @@ module "sg" {
   source = "./modules/sg"
   main_vpc_id = module.vpc.vpc_id
 
-
   security_groups = {
 
     bastion_sg = {
@@ -51,7 +50,7 @@ module "sg" {
 
     alb_sg = {
         ingress_port_tcp = 80
-        allowed_cidr_block = "0.0.0.0/0"
+        allowed_cidr_block = var.my_ip
         allow_all_egress = true
 
     }
@@ -102,4 +101,15 @@ module "bastion" {
   subnet_id = module.vpc.public_subnet_ids[0]
   security_group_ids = [module.sg.security_group_ids["bastion_sg"]]
   key_name = local.bastion_key_name
+}
+
+module "alb" {
+    source = "./modules/alb"
+
+    name_prefix = local.project
+    vpc_id = module.vpc.vpc_id
+    public_subnet_ids = module.vpc.public_subnet_ids
+    security_groups_id = module.sg.security_group_ids["alb_sg"]
+    port_listener = local.http_port
+    ollama_port = 11434
 }
