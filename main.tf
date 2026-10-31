@@ -13,6 +13,7 @@ provider "aws" {
 module "vpc" {
   source = "./modules/vpc"
   nat_gateway_public_subnet_index = 0
+  name_prefix = local.project
 
 cidr = "10.0.0.0/24"
 
@@ -55,21 +56,39 @@ module "sg" {
 
     }
 
-    bastion-servers_sg = {
-        ingress_port_tcp = 22
-        allowed_security_groups = ["bastion_sg"]
-    }
+    bastion-servers_sg = {}
 
     alb-llm_sg = {
-        ingress_port_tcp        = 11434
-        allowed_security_groups = ["alb_sg"]
         allow_all_egress = true
-
     }
 
-    rds_sg = {
-        ingress_port_tcp        = 5432
-        allowed_security_groups = ["alb-llm_sg", "bastion_sg"]
+    rds_sg = {}
+  }
+
+  sg_ingress_rules = {
+
+    ssh_to_server = {
+        target_group = "bastion-servers_sg"
+        source_group = "bastion_sg"
+        port = 22
+    }
+
+    alb_to_llm = {
+        target_group = "alb-llm_sg"
+        source_group = "alb_sg"
+        port = 11434
+    }
+
+    llm_to_db = {
+        target_group = "rds_sg"
+        source_group = "alb-llm_sg"
+        port = 5432
+    }
+
+    bastion_to_db = {
+        target_group = "rds_sg"
+        source_group = "bastion_sg"
+        port = 5432
     }
 
   }

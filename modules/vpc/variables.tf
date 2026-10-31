@@ -21,3 +21,7 @@ variable "private_servers_subnets" {
 variable "nat_gateway_public_subnet_index" {
   type = number
 }
+
+variable "name_prefix" {
+  type = string
+}
