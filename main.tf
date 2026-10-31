@@ -113,3 +113,19 @@ module "alb" {
     port_listener = local.http_port
     ollama_port = 11434
 }
+
+module "asg" {
+  source = "./modules/asg"
+
+  name_prefix = local.project
+  ami_id = local.llm_ami_id
+  instance_type = local.llm_instance_type
+  key_name = local.bastion_key_name
+  security_group_ids = [
+    module.sg.security_group_ids["bastion-servers_sg"],
+    module.sg.security_group_ids["alb-llm_sg"]
+  ]
+  private_subnet_ids = module.vpc.private_servers_subnet_ids
+  user_data = filebase64("${path.root}/scripts/install_ollama.sh")
+  target_group_arn = module.alb.target_group_arn
+}
