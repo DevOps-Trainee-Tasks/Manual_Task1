@@ -101,6 +101,7 @@ module "bastion" {
   subnet_id = module.vpc.public_subnet_ids[0]
   security_group_ids = [module.sg.security_group_ids["bastion_sg"]]
   key_name = local.bastion_key_name
+  user_data = file("${path.root}/scripts/install_pg.sh")
 }
 
 module "alb" {

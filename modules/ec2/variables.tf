@@ -17,3 +17,7 @@ variable "security_group_ids" {
 variable "key_name" {
   type = string
 }
+
+variable "user_data" {
+  type = string
+}

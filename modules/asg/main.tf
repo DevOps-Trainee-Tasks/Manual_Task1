@@ -15,7 +15,7 @@ resource "aws_autoscaling_group" "scaling" {
     max_size = 4
     target_group_arns = [var.target_group_arn]
     health_check_type = "ELB"
-    health_check_grace_period = 900
+    health_check_grace_period = 676
     launch_template {
       id = aws_launch_template.launch_template.id
       version = aws_launch_template.launch_template.latest_version
